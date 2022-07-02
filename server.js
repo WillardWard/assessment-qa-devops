@@ -6,12 +6,24 @@ const {shuffleArray} = require('./utils')
 
 app.use(express.json())
 
+// include and initialize the rollbar library with your access token
+var Rollbar = require('rollbar')
+var rollbar = new Rollbar({
+  accessToken: '7db6fbb0c8fa4054b527078ebe29a2b0',
+  captureUncaught: true,
+  captureUnhandledRejections: true,
+})
+
+// record a generic message and send it to Rollbar
+rollbar.log('Hello world!')
+
 app.use(express.static(path.join(__dirname, '/public')));
 app.use('/styles', express.static(path.join(__dirname, '/public/index.css')));
 app.use('/js', express.static(path.join(__dirname, '/public/index.js')));
 
 app.get('/api/robots', (req, res) => {
     try {
+        rollbar.info('got list of bots');
         res.status(200).send(bots)
     } catch (error) {
         console.log('ERROR GETTING BOTS', error)
@@ -24,6 +36,7 @@ app.get('/api/robots/five', (req, res) => {
         let shuffled = shuffleArray(bots)
         let choices = shuffled.slice(0, 5)
         let compDuo = shuffled.slice(6, 8)
+        rollbar.info('created list of 5 random bots')
         res.status(200).send({choices, compDuo})
     } catch (error) {
         console.log('ERROR GETTING FIVE BOTS', error)
@@ -51,12 +64,15 @@ app.post('/api/duel', (req, res) => {
         // comparing the total health to determine a winner
         if (compHealthAfterAttack > playerHealthAfterAttack) {
             playerRecord.losses++
+            rollbar.info('user won a duel');
             res.status(200).send('You lost!')
         } else {
             playerRecord.wins++
+            rollbar.info('user lost a duel');
             res.status(200).send('You won!')
         }
     } catch (error) {
+        rollbar.error('dueling error');
         console.log('ERROR DUELING', error)
         res.sendStatus(400)
     }
@@ -66,6 +82,7 @@ app.get('/api/player', (req, res) => {
     try {
         res.status(200).send(playerRecord)
     } catch (error) {
+        rollbar.error('error getting player stats');
         console.log('ERROR GETTING PLAYER STATS', error)
         res.sendStatus(400)
     }
